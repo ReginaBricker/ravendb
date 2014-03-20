@@ -184,7 +184,9 @@ namespace Voron.Impl.Backup
 
                     using (var package = ZipFile.Open(backupPath, ZipArchiveMode.Read))
                     {
-                        journalNames = package.Entries.Select(x => x.Name).ToList();
+                        journalNames = package.Entries.Select(x => x.Name)
+                                                      .Where(x => x.IndexOf(".journal",StringComparison.InvariantCultureIgnoreCase) != -1)
+                                                      .ToList();
                     }
 
                     if (journalNames.Count == 0)

@@ -19,8 +19,8 @@ namespace Raven.Database.Storage.Esent.Backup
 	{
 		private readonly bool defrag;
 
-        public RestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback, bool defrag)
-            : base(backupLocation, configuration, operationOutputCallback)
+        public RestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback, bool defrag, string customIndexesLocation, string journalLocation)
+            : base(backupLocation, configuration, operationOutputCallback, customIndexesLocation, journalLocation)
 		{
 			this.defrag = defrag;
 		}
@@ -44,8 +44,10 @@ namespace Raven.Database.Storage.Esent.Backup
 			if (Directory.Exists(databaseLocation) == false)
 				Directory.CreateDirectory(databaseLocation);
 
-			if (Directory.Exists(indexLocation) == false)
-				Directory.CreateDirectory(indexLocation);
+            //if (Directory.Exists(indexLocation) == false)
+            //    Directory.CreateDirectory(indexLocation);
+            if (Directory.Exists(CustomIndexesLocation) == false)
+                Directory.CreateDirectory(CustomIndexesLocation);
 
 			var logsPath = databaseLocation;
 

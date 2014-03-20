@@ -31,7 +31,7 @@ namespace Raven.Database.Storage
 		void ExecuteImmediatelyOrRegisterForSynchronization(Action action);
 		bool Initialize(IUuidGenerator generator, OrderedPartCollection<AbstractDocumentCodec> documentCodecs);
 		void StartBackupOperation(DocumentDatabase database, string backupDestinationDirectory, bool incrementalBackup, DatabaseDocument documentDatabase);
-		void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag);
+		void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag, string indexesLocation, string journalLocation);
 		DatabaseSizeInformation GetDatabaseSize();
 		long GetDatabaseCacheSizeInBytes();
 		long GetDatabaseTransactionVersionSizeInBytes();

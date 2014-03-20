@@ -255,9 +255,9 @@ namespace Raven.Storage.Voron
             Task.Factory.StartNew(backupOperation.Execute);
 		}       
 
-		public void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag)
+		public void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag, string indexesLocation, string journalLocation)
 		{
-			new RestoreOperation(backupLocation, configuration, output).Execute();
+            new RestoreOperation(backupLocation, configuration, output, indexesLocation, journalLocation).Execute();
 		}
 
 	    public DatabaseSizeInformation GetDatabaseSize()

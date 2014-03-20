@@ -145,7 +145,7 @@ namespace Raven.Database.Server.Controllers.Admin
 						restoreStatus.Messages.Add(msg);
 						DatabasesLandlord.SystemDatabase.Put(RestoreStatus.RavenRestoreStatusDocumentKey, null,
 							RavenJObject.FromObject(restoreStatus), new RavenJObject(), null);
-					}, defrag);
+					}, defrag, restoreRequest.IndexesLocation, restoreRequest.JournalLocation);
 
 				if (databaseDocument == null)
 					return;
@@ -175,25 +175,25 @@ namespace Raven.Database.Server.Controllers.Admin
 		    return GetMessageWithObject(new {Id = id});
 		}
 
-		private string ResolveTenantDataDirectory(string databaseLocation, string databaseName, out string documentDataDir)
-		{
-			if (Path.IsPathRooted(databaseLocation))
-			{
-				documentDataDir = databaseLocation;
-				return databaseLocation;
-			}
+        private string ResolveTenantDataDirectory(string databaseLocation, string databaseName, out string documentDataDir)
+        {
+            if (Path.IsPathRooted(databaseLocation))
+            {
+                documentDataDir = databaseLocation;
+                return databaseLocation;
+            }
 
-			var baseDataPath = Path.GetDirectoryName(DatabasesLandlord.SystemDatabase.Configuration.DataDirectory);
-			if (baseDataPath == null)
-				throw new InvalidOperationException("Could not find root data path");
+            var baseDataPath = Path.GetDirectoryName(DatabasesLandlord.SystemDatabase.Configuration.DataDirectory);
+            if (baseDataPath == null)
+                throw new InvalidOperationException("Could not find root data path");
 
-			if (string.IsNullOrWhiteSpace(databaseLocation))
-			{
-				documentDataDir = Path.Combine("~\\Databases", databaseName);
-				return Path.Combine(baseDataPath, documentDataDir.Substring(2));
-			}
+            if (string.IsNullOrWhiteSpace(databaseLocation))
+            {
+                documentDataDir = Path.Combine("~\\Databases", databaseName);
+                return Path.Combine(baseDataPath, documentDataDir.Substring(2));
+            }
 
-			documentDataDir = databaseLocation;
+            documentDataDir = databaseLocation;
 
             if (!documentDataDir.StartsWith("~/") && !documentDataDir.StartsWith(@"~\"))
             {
@@ -204,8 +204,8 @@ namespace Raven.Database.Server.Controllers.Admin
                 documentDataDir = "~\\" + documentDataDir.Substring(2);
             }
 
-			return Path.Combine(baseDataPath, documentDataDir.Substring(2));
-		}
+            return Path.Combine(baseDataPath, documentDataDir.Substring(2));
+        }
 
 		[HttpPost]
 		[Route("admin/changedbid")]

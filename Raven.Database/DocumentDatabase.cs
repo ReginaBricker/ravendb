@@ -2588,7 +2588,7 @@ namespace Raven.Database
             TransactionalStorage.StartBackupOperation(this, backupDestinationDirectory, incrementalBackup, databaseDocument);
         }
 
-        public static void Restore(RavenConfiguration configuration, string backupLocation, string databaseLocation, Action<string> output, bool defrag)
+        public static void Restore(RavenConfiguration configuration, string backupLocation, string databaseLocation, Action<string> output, bool defrag, string indexesLocation=null, string journalLocation=null)
         {
             var databaseDocumentPath = Path.Combine(backupLocation, "Database.Document");
             if (File.Exists(databaseDocumentPath) == false)
@@ -2608,7 +2608,7 @@ namespace Raven.Database
 
             using (var transactionalStorage = configuration.CreateTransactionalStorage(storage, () => { }))
             {
-                transactionalStorage.Restore(backupLocation, databaseLocation, output, defrag);
+                transactionalStorage.Restore(backupLocation, databaseLocation, output, defrag,indexesLocation, journalLocation);
             }
         }
 

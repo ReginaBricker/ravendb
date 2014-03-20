@@ -9,8 +9,8 @@ namespace Raven.Database.Storage.Voron.Backup
 {
     public class RestoreOperation : BaseRestoreOperation
     {
-		public RestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback)
-            : base(backupLocation,configuration,operationOutputCallback)
+        public RestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback, string customIndexesLocation , string journalLocation)
+            : base(backupLocation, configuration, operationOutputCallback, customIndexesLocation,journalLocation)
 		{
 		}
 
@@ -26,10 +26,12 @@ namespace Raven.Database.Storage.Voron.Backup
 				var backupFilenamePath = BackupFilenamePath(BackupMethods.Filename);
 
 				if (Directory.GetDirectories(backupLocation, "Inc*").Any() == false)
-		            BackupMethods.Full.Restore(backupFilenamePath, configuration.DataDirectory);
-	            else
+                    BackupMethods.Full.Restore(backupFilenamePath, JournalLocation);
+                   // BackupMethods.Full.Restore(backupFilenamePath, configuration.DataDirectory);
+                else
 				{
-                    using (var options = StorageEnvironmentOptions.ForPath(configuration.DataDirectory))
+                    using (var options = StorageEnvironmentOptions.ForPath(JournalLocation))
+                  //  using (var options = StorageEnvironmentOptions.ForPath(configuration.DataDirectory))
                     {
                         var backupPaths = Directory.GetDirectories(backupLocation, "Inc*")
                             .OrderBy(dir=>dir)
