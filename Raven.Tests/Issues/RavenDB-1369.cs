@@ -1,30 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Raven.Client.Document;
 using Raven.Client.Embedded;
-using Raven.Client.Linq;
 using Raven.Database;
 using Raven.Database.Config;
 using Raven.Json.Linq;
 using Raven.Abstractions.Data;
 using System.IO;
-using Rhino.Mocks.Constraints;
 using Xunit;
-using Raven.Client.Extensions;
 using Raven.Abstractions.Extensions;
 using Raven.Database.Extensions;
 using Raven.Client.Indexes;
-using Xunit.Extensions;
 using System.Threading;
 
 namespace Raven.Tests.Issues
 {
     public class DbRestoreWithParameters : RavenTest
     {
-        private readonly string voronDataDir;
         private readonly string voronDatabaseLocation;
         private readonly string voronIncrDatabaseLocation;
         private readonly string voronDatabaseName;
@@ -35,7 +27,6 @@ namespace Raven.Tests.Issues
         private readonly string voronBackupDir; // is RestoreLocation
         private readonly string voronIncrBackupDir; // is RestoreLocation
       
-        private readonly string esentDataDir;
         private readonly string esentDatabaseLocation;
         private readonly string esentIncrDatabaseLocation;
         private readonly string esentDatabaseName;
@@ -92,24 +83,7 @@ namespace Raven.Tests.Issues
             Thread.Sleep(2000);
 
         }
-        private void Add1DataAndCreateIncrementalBackup(EmbeddableDocumentStore store)
-        {
-
-            var indexDefinitionsFolder = Path.Combine(store.DocumentDatabase.Configuration.DataDirectory, "IndexDefinitions");
-            if (!Directory.Exists(indexDefinitionsFolder))
-                Directory.CreateDirectory(indexDefinitionsFolder);
-
-            AddUser(store, "Fitzchak");
-            AddUser(store, "Oren");
-            AddUser(store, "Michael");
-            AddUser(store, "Regina");
-            AddUser(store, "Maxim");
-            AddUser(store, "Grisha");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(voronIncrBackupDir, true, new DatabaseDocument()));
-            WaitForBackup(store.DocumentDatabase, true);
-            Thread.Sleep(2000);
-
-        }
+     
 
         private static void AddUser(EmbeddableDocumentStore store, string usename)
         {
@@ -123,8 +97,8 @@ namespace Raven.Tests.Issues
         protected override void ModifyConfiguration(InMemoryRavenConfiguration configuration)
         {
             configuration.Settings["Raven/Esent/CircularLog"] = "false";
-         //  	configuration.Settings["Raven/Voron/AllowIncrementalBackups"] = "true";
-           configuration.Settings["Raven/Voron/AllowIncrementalBackups"] = "false";
+           	configuration.Settings["Raven/Voron/AllowIncrementalBackups"] = "true";
+         //!!  configuration.Settings["Raven/Voron/AllowIncrementalBackups"] = "false";
             configuration.RunInUnreliableYetFastModeThatIsNotSuitableForProduction = false;
         }
 
@@ -141,7 +115,7 @@ namespace Raven.Tests.Issues
         public DbRestoreWithParameters()
         {
             voronBackupDir = @"D:\NewDbBackup\Test";
-            voronIncrBackupDir = @"C:\NewIncDBBckp\Test";
+            voronIncrBackupDir = @"D:\NewIncDBBckp\Test";
             voronDatabaseLocation = @"C:\FullRestore\Databases\DbRestoreTest";
             voronIncrDatabaseLocation = @"C:\IncFullRestore\Databases\DbRestoreTest";
             voronDatabaseName = "DbRestoreTest";
@@ -149,8 +123,6 @@ namespace Raven.Tests.Issues
             voronJournalLocation = @"D:\FullJournalsRestore\Test";
             voronIndexesLocation = @"D:\FullIndexesRestore\Test";
             voronIncrIndexesLocation = @"D:\IncFullIndexesRestore\Test";
-
-            voronDataDir = @"C:\TempDataDir";
 
             esentBackupDir = @"D:\ENewDbBackup\Test";
             esentIncrBackupDir = @"C:\ENewIncDBBckp\Test";
@@ -161,12 +133,7 @@ namespace Raven.Tests.Issues
             esentJournalLocation = @"D:\EFullJournalsRestore\Test";
             esentIndexesLocation = @"D:\EFullIndexesRestore\Test";
             esentIncrIndexesLocation = @"D:\EIncFullIndexesRestore\Test";
-
-            esentDataDir = @"C:\ETempDataDir";
-
-          
-          
-        }
+       }
 
         public void InitDb(bool isVoron = true)
         {
@@ -176,6 +143,7 @@ namespace Raven.Tests.Issues
                 dbVoron = new DocumentDatabase(new RavenConfiguration
                 {
                     DatabaseName = voronDatabaseName,
+                    RunInMemory = false,
                     RunInUnreliableYetFastModeThatIsNotSuitableForProduction = false
                 });
             }
@@ -185,6 +153,7 @@ namespace Raven.Tests.Issues
                 dbEsent = new DocumentDatabase(new RavenConfiguration
                 {
                     DatabaseName = esentDatabaseName,
+                    RunInMemory = false,
                     RunInUnreliableYetFastModeThatIsNotSuitableForProduction = false,
                     
                 });
@@ -192,24 +161,8 @@ namespace Raven.Tests.Issues
             }
            
         }
-        public IEnumerable<User> ReadIncrRestore()
+         public IEnumerable<User> ReadRestore(string journalLocation)
         {
-            using (var store = new EmbeddableDocumentStore
-            {
-                DataDirectory = voronIncrJournalLocation
-            })
-            {
-                store.Initialize();
-                using (var session = store.OpenSession())
-                    return session.Query<User>().ToList();
-            }
-
-
-        }
-        public IEnumerable<User> ReadRestore(string journalLocation)
-        {
-
-
 
             using (var store = new EmbeddableDocumentStore()
             {
@@ -221,13 +174,12 @@ namespace Raven.Tests.Issues
                     return session.Query<User>().ToList();
             }
 
-
         }
         [Fact]
          public void IncrementalVoronRestoreWithParams()
         {
-            string storage = "voron";
-            InitDb(true);
+            const string storage = "voron";
+            InitDb();
             IOExtensions.DeleteDirectory(voronIncrBackupDir);
             IEnumerable<User> preBackupData;
             using (var store = NewDocumentStore(requestedStorage: storage, runInMemory: false))
@@ -235,82 +187,17 @@ namespace Raven.Tests.Issues
                 AddDataAndCreateIncrementalBackup(store,voronIncrBackupDir);
                 using (var session = store.OpenSession())
                     preBackupData = session.Query<User>().ToList();
-            }            
-                  if (Directory.Exists(voronIncrDatabaseLocation))
-                     IOExtensions.DeleteDirectory(voronIncrDatabaseLocation);
-          
+            }
 
-            if (Directory.Exists(voronIncrJournalLocation))
-                IOExtensions.DeleteDirectory(voronIncrJournalLocation);
+            DeleteDirectories(voronIncrDatabaseLocation, voronIncrJournalLocation, voronIncrIndexesLocation);
 
-            if (Directory.Exists(voronIncrIndexesLocation))
-                IOExtensions.DeleteDirectory(voronIncrIndexesLocation);
-
-             DatabaseDocument databaseDocument = null;
-             var restoreStatus = new RestoreStatus { Messages = new List<string>() };
-
-             var databaseDocumentPath = Path.Combine(voronIncrBackupDir, "Database.Document");
-             if (File.Exists(databaseDocumentPath))
-             {
-                 var databaseDocumentText = File.ReadAllText(databaseDocumentPath);
-                 databaseDocument = RavenJObject.Parse(databaseDocumentText).JsonDeserialization<DatabaseDocument>();
-             }
-
-             var databaseName = !string.IsNullOrWhiteSpace(voronDatabaseName) ? voronDatabaseName
-                 : databaseDocument == null ? null : databaseDocument.Id;
-
-             if (string.IsNullOrWhiteSpace(databaseName))
-             {
-                 var errorMessage = (databaseDocument == null || String.IsNullOrWhiteSpace(databaseDocument.Id))
-                     ? "Database.Document file is invalid - database name was not found and not supplied in the request (Id property is missing or null). This is probably a bug - should never happen."
-                     : "A database name must be supplied if the restore location does not contain a valid Database.Document file";
-
-             }
-
-             if (databaseName == Constants.SystemDatabase)
-             {
-                 Console.WriteLine("Cannot do an online restore for the <system> database");
-                 return;
-             }
-
-
-             var ravenConfiguration = new RavenConfiguration
-             {
-                 DatabaseName = databaseName,
-             };
-
-             if (databaseDocument != null)
-             {
-                 foreach (var setting in databaseDocument.Settings)
-                 {
-                     ravenConfiguration.Settings[setting.Key] = setting.Value;
-                 }
-             }
-
-             if (File.Exists(Path.Combine(voronBackupDir, Voron.Impl.Constants.DatabaseFilename)))
-                 ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Voron.TransactionalStorage).AssemblyQualifiedName;
-             else if (Directory.Exists(Path.Combine(voronIncrBackupDir, "new")))
-                 ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Esent.TransactionalStorage).AssemblyQualifiedName;
-
-             ravenConfiguration.CustomizeValuesForTenant(databaseName);
-             ravenConfiguration.Initialize();
-
-             ravenConfiguration.DataDirectory = voronIncrDatabaseLocation;
-
-             var defrag = true;
-             var state = new RavenJObject
+            if (!RestoreDatabase(voronIncrBackupDir, voronDatabaseName, voronIncrDatabaseLocation, true,voronIncrIndexesLocation, voronIncrJournalLocation))
             {
-                {"Done", false},
-                {"Error", null}
-            };
 
-             DocumentDatabase.Restore(ravenConfiguration, voronIncrBackupDir, null,
-                 msg =>
-                 {
-                     restoreStatus.Messages.Add(msg);
-                 }, defrag, voronIncrIndexesLocation, voronIncrJournalLocation);
+                return ;
+            }
 
-             bool dirExists = (Directory.Exists(voronIncrJournalLocation)) && (Directory.Exists(voronIncrIndexesLocation)) && (Directory.Exists(voronIncrDatabaseLocation));
+            bool dirExists = (Directory.Exists(voronIncrJournalLocation)) && (Directory.Exists(voronIncrIndexesLocation)) && (Directory.Exists(voronIncrDatabaseLocation));
             Assert.Equal(dirExists, true);
             var afterRestoreData = ReadRestore(voronIncrJournalLocation).ToList();
 
@@ -328,22 +215,81 @@ namespace Raven.Tests.Issues
   
         }
 
-        private void InitializeDocumentDatabase(string storageName)
-	    {
-	        dbVoron = new DocumentDatabase(new RavenConfiguration
-	        {
-                DefaultStorageTypeName = storageName,
-	            DataDirectory = voronDataDir,
-                RunInMemory = false,
-	            RunInUnreliableYetFastModeThatIsNotSuitableForProduction = false,
-	            Settings =
-	            {
-	                {"Raven/Esent/CircularLog", "false"}
-	            }
-	        });
-	        dbVoron.PutIndex(new RavenDocumentsByEntityName().IndexName, new RavenDocumentsByEntityName().CreateIndexDefinition());
-	    }
+        private static void DeleteDirectories(string dbLocation,string journalLocation,string indexesLocation)
+        {
+            if (Directory.Exists(dbLocation))
+                IOExtensions.DeleteDirectory(dbLocation);
 
+
+            if (Directory.Exists(journalLocation))
+                IOExtensions.DeleteDirectory(journalLocation);
+
+            if (Directory.Exists(indexesLocation))
+                IOExtensions.DeleteDirectory(indexesLocation);
+        }
+
+        private static bool RestoreDatabase(string backupDir,string dbName, string databaseLocation,bool isVoronType,string indexesLocation=null, string journalLocation=null)
+        {
+            DatabaseDocument databaseDocument = null;
+            var restoreStatus = new RestoreStatus {Messages = new List<string>()};
+
+            var databaseDocumentPath = Path.Combine(backupDir, "Database.Document");
+            if (File.Exists(databaseDocumentPath))
+            {
+                var databaseDocumentText = File.ReadAllText(databaseDocumentPath);
+                databaseDocument = RavenJObject.Parse(databaseDocumentText).JsonDeserialization<DatabaseDocument>();
+            }
+
+            var databaseName = !string.IsNullOrWhiteSpace(dbName) ? dbName
+                : databaseDocument == null ? null : databaseDocument.Id;
+
+            if (string.IsNullOrWhiteSpace(databaseName))
+            {
+                var errorMessage = (databaseDocument == null || String.IsNullOrWhiteSpace(databaseDocument.Id))
+                    ? "Database.Document file is invalid - database name was not found and not supplied in the request (Id property is missing or null). This is probably a bug - should never happen."
+                    : "A database name must be supplied if the restore location does not contain a valid Database.Document file";
+            }
+
+            if (databaseName == Constants.SystemDatabase)
+            {
+                Console.WriteLine("Cannot do an online restore for the <system> database");
+                return false;
+            }
+
+
+            var ravenConfiguration = new RavenConfiguration
+            {
+                DatabaseName = databaseName,
+            };
+
+            if (databaseDocument != null)
+            {
+                foreach (var setting in databaseDocument.Settings)
+                {
+                    ravenConfiguration.Settings[setting.Key] = setting.Value;
+                }
+            }
+
+            ravenConfiguration.DefaultStorageTypeName = isVoronType ? typeof (Raven.Storage.Voron.TransactionalStorage).AssemblyQualifiedName : typeof (Raven.Storage.Esent.TransactionalStorage).AssemblyQualifiedName;
+
+            ravenConfiguration.CustomizeValuesForTenant(databaseName);
+            ravenConfiguration.Initialize();
+
+            ravenConfiguration.DataDirectory = databaseLocation;
+
+            var defrag = true;
+            var state = new RavenJObject
+            {
+                {"Done", false},
+                {"Error", null}
+            };
+
+            DocumentDatabase.Restore(ravenConfiguration, backupDir, null,
+                msg => { restoreStatus.Messages.Add(msg); }, defrag, indexesLocation, journalLocation);
+            return true;
+        }
+
+      
         
         
          [Fact]
@@ -351,7 +297,6 @@ namespace Raven.Tests.Issues
         {
             string storageName = "voron";
             InitDb(true);
-            //??  InitializeDocumentDatabase(storageName);
             IOExtensions.DeleteDirectory(voronBackupDir);
 
             IEnumerable<User> preBackupData;
@@ -382,79 +327,14 @@ namespace Raven.Tests.Issues
 
             dbVoron.Dispose();
 
-            if (Directory.Exists(voronDatabaseLocation))
-                IOExtensions.DeleteDirectory(voronDatabaseLocation);
+            DeleteDirectories(voronDatabaseLocation, voronJournalLocation, voronIndexesLocation);
 
-            if (Directory.Exists(voronJournalLocation))
-                IOExtensions.DeleteDirectory(voronJournalLocation);
-
-            if (Directory.Exists(voronIndexesLocation))
-                IOExtensions.DeleteDirectory(voronIndexesLocation);
-
-            DatabaseDocument databaseDocument = null;
-            var restoreStatus = new RestoreStatus { Messages = new List<string>() };
-
-            var databaseDocumentPath = Path.Combine(voronBackupDir, "Database.Document");
-            if (File.Exists(databaseDocumentPath))
+   
+            if (!RestoreDatabase(voronBackupDir, voronDatabaseName, voronDatabaseLocation, true,voronIndexesLocation, voronJournalLocation))
             {
-                var databaseDocumentText = File.ReadAllText(databaseDocumentPath);
-                databaseDocument = RavenJObject.Parse(databaseDocumentText).JsonDeserialization<DatabaseDocument>();
-            }
 
-            var databaseName = !string.IsNullOrWhiteSpace(voronDatabaseName) ? voronDatabaseName
-                : databaseDocument == null ? null : databaseDocument.Id;
-
-            if (string.IsNullOrWhiteSpace(databaseName))
-            {
-                var errorMessage = (databaseDocument == null || String.IsNullOrWhiteSpace(databaseDocument.Id))
-                    ? "Database.Document file is invalid - database name was not found and not supplied in the request (Id property is missing or null). This is probably a bug - should never happen."
-                    : "A database name must be supplied if the restore location does not contain a valid Database.Document file";
-
-            }
-
-            if (databaseName == Constants.SystemDatabase)
-            {
-                Console.WriteLine("Cannot do an online restore for the <system> database");
                 return;
             }
-
-
-            var ravenConfiguration = new RavenConfiguration
-            {
-                DatabaseName = databaseName,
-            };
-
-            if (databaseDocument != null)
-            {
-                foreach (var setting in databaseDocument.Settings)
-                {
-                    ravenConfiguration.Settings[setting.Key] = setting.Value;
-                }
-            }
-
-            if (File.Exists(Path.Combine(voronBackupDir, Voron.Impl.Constants.DatabaseFilename)))
-                ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Voron.TransactionalStorage).AssemblyQualifiedName;
-            else if (Directory.Exists(Path.Combine(voronBackupDir, "new")))
-                ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Esent.TransactionalStorage).AssemblyQualifiedName;
-
-            ravenConfiguration.CustomizeValuesForTenant(databaseName);
-            ravenConfiguration.Initialize();
-
-            string documentDataDir;
-            ravenConfiguration.DataDirectory = voronDatabaseLocation;
-
-            var defrag = true;
-            var state = new RavenJObject
-            {
-                {"Done", false},
-                {"Error", null}
-            };
-
-            DocumentDatabase.Restore(ravenConfiguration, voronBackupDir, null,
-                msg =>
-                {
-                    restoreStatus.Messages.Add(msg);
-                }, defrag, voronIndexesLocation, voronJournalLocation);
 
             bool dirExists = (Directory.Exists(voronJournalLocation)) && (Directory.Exists(voronIndexesLocation)) && (Directory.Exists(voronDatabaseLocation));
             Assert.Equal(dirExists, true);
@@ -480,7 +360,7 @@ namespace Raven.Tests.Issues
          [Fact]
          public void IncrementalEsentRestoreWithParams()
          {
-             string storage = "esent";
+             const string storage = "esent";
              InitDb(true);
              IOExtensions.DeleteDirectory(esentIncrBackupDir);
              IEnumerable<User> preBackupData;
@@ -490,78 +370,14 @@ namespace Raven.Tests.Issues
                  using (var session = store.OpenSession())
                      preBackupData = session.Query<User>().ToList();
              }
-             if (Directory.Exists(esentIncrDatabaseLocation))
-                 IOExtensions.DeleteDirectory(esentIncrDatabaseLocation);
 
-
-             if (Directory.Exists(esentIncrJournalLocation))
-                 IOExtensions.DeleteDirectory(esentIncrJournalLocation);
-
-             if (Directory.Exists(esentIncrIndexesLocation))
-                 IOExtensions.DeleteDirectory(esentIncrIndexesLocation);
-
-             DatabaseDocument databaseDocument = null;
-             var restoreStatus = new RestoreStatus { Messages = new List<string>() };
-
-             var databaseDocumentPath = Path.Combine(esentIncrBackupDir, "Database.Document");
-             if (File.Exists(databaseDocumentPath))
+             DeleteDirectories(esentIncrDatabaseLocation, esentIncrJournalLocation, esentIncrIndexesLocation);
+    
+             if (!RestoreDatabase(esentIncrBackupDir, esentDatabaseName, esentIncrDatabaseLocation, false, esentIncrIndexesLocation, esentIncrJournalLocation))
              {
-                 var databaseDocumentText = File.ReadAllText(databaseDocumentPath);
-                 databaseDocument = RavenJObject.Parse(databaseDocumentText).JsonDeserialization<DatabaseDocument>();
-             }
 
-             var databaseName = !string.IsNullOrWhiteSpace(esentDatabaseName) ? esentDatabaseName
-                 : databaseDocument == null ? null : databaseDocument.Id;
-
-             if (string.IsNullOrWhiteSpace(databaseName))
-             {
-                 var errorMessage = (databaseDocument == null || String.IsNullOrWhiteSpace(databaseDocument.Id))
-                     ? "Database.Document file is invalid - database name was not found and not supplied in the request (Id property is missing or null). This is probably a bug - should never happen."
-                     : "A database name must be supplied if the restore location does not contain a valid Database.Document file";
-
-             }
-
-             if (databaseName == Constants.SystemDatabase)
-             {
-                 Console.WriteLine("Cannot do an online restore for the <system> database");
                  return;
              }
-
-
-             var ravenConfiguration = new RavenConfiguration
-             {
-                 DatabaseName = databaseName,
-             };
-
-             if (databaseDocument != null)
-             {
-                 foreach (var setting in databaseDocument.Settings)
-                 {
-                     ravenConfiguration.Settings[setting.Key] = setting.Value;
-                 }
-             }
-
-  
-             ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Esent.TransactionalStorage).AssemblyQualifiedName;
-
-             ravenConfiguration.CustomizeValuesForTenant(databaseName);
-             ravenConfiguration.Initialize();
-
-             string documentDataDir;
-             ravenConfiguration.DataDirectory = esentIncrDatabaseLocation;
-
-             var defrag = true;
-             var state = new RavenJObject
-            {
-                {"Done", false},
-                {"Error", null}
-            };
-
-             DocumentDatabase.Restore(ravenConfiguration, esentIncrBackupDir, null,
-                 msg =>
-                 {
-                     restoreStatus.Messages.Add(msg);
-                 }, defrag, esentIncrIndexesLocation, esentIncrJournalLocation);
 
              bool dirExists = (Directory.Exists(esentIncrJournalLocation)) && (Directory.Exists(esentIncrIndexesLocation)) && (Directory.Exists(esentIncrDatabaseLocation));
              Assert.Equal(dirExists, true);
@@ -587,7 +403,6 @@ namespace Raven.Tests.Issues
          {
              const string storageName = "esent";
              InitDb(false);
-             //??  InitializeDocumentDatabase(storageName);
              IOExtensions.DeleteDirectory(esentBackupDir);
 
              IEnumerable<User> preBackupData;
@@ -618,79 +433,13 @@ namespace Raven.Tests.Issues
              //??  WaitForBackup(dbVoron, true);
 
              dbEsent.Dispose();
+             DeleteDirectories(esentDatabaseLocation, esentJournalLocation, esentIndexesLocation);
 
-             if (Directory.Exists(esentDatabaseLocation))
-                 IOExtensions.DeleteDirectory(esentDatabaseLocation);
-
-             if (Directory.Exists(esentJournalLocation))
-                 IOExtensions.DeleteDirectory(esentJournalLocation);
-
-             if (Directory.Exists(esentIndexesLocation))
-                 IOExtensions.DeleteDirectory(esentIndexesLocation);
-
-             DatabaseDocument databaseDocument = null;
-             var restoreStatus = new RestoreStatus { Messages = new List<string>() };
-
-             var databaseDocumentPath = Path.Combine(esentBackupDir, "Database.Document");
-             if (File.Exists(databaseDocumentPath))
+             if (!RestoreDatabase(esentBackupDir, esentDatabaseName, esentDatabaseLocation, false, esentIndexesLocation, esentJournalLocation))
              {
-                 var databaseDocumentText = File.ReadAllText(databaseDocumentPath);
-                 databaseDocument = RavenJObject.Parse(databaseDocumentText).JsonDeserialization<DatabaseDocument>();
-             }
 
-             var databaseName = !string.IsNullOrWhiteSpace(esentDatabaseName) ? esentDatabaseName
-                 : databaseDocument == null ? null : databaseDocument.Id;
-
-             if (string.IsNullOrWhiteSpace(databaseName))
-             {
-                 var errorMessage = (databaseDocument == null || String.IsNullOrWhiteSpace(databaseDocument.Id))
-                     ? "Database.Document file is invalid - database name was not found and not supplied in the request (Id property is missing or null). This is probably a bug - should never happen."
-                     : "A database name must be supplied if the restore location does not contain a valid Database.Document file";
-
-             }
-
-             if (databaseName == Constants.SystemDatabase)
-             {
-                 Console.WriteLine("Cannot do an online restore for the <system> database");
                  return;
              }
-
-
-             var ravenConfiguration = new RavenConfiguration
-             {
-                 DatabaseName = databaseName,
-             };
-
-             if (databaseDocument != null)
-             {
-                 foreach (var setting in databaseDocument.Settings)
-                 {
-                     ravenConfiguration.Settings[setting.Key] = setting.Value;
-                 }
-             }
-
-  
-             ravenConfiguration.DefaultStorageTypeName = typeof(Raven.Storage.Esent.TransactionalStorage).AssemblyQualifiedName;
-
-             ravenConfiguration.CustomizeValuesForTenant(databaseName);
-             ravenConfiguration.Initialize();
-
-             string documentDataDir;
-             ravenConfiguration.DataDirectory = esentDatabaseLocation;
-
-             var defrag = true;
-             var state = new RavenJObject
-            {
-                {"Done", false},
-                {"Error", null}
-            };
-
-             DocumentDatabase.Restore(ravenConfiguration, esentBackupDir, null,
-                 msg =>
-                 {
-                     restoreStatus.Messages.Add(msg);
-                 }, defrag, esentIndexesLocation, esentJournalLocation);
-
              bool dirExists = (Directory.Exists(esentJournalLocation)) && (Directory.Exists(esentIndexesLocation)) && (Directory.Exists(esentDatabaseLocation));
              Assert.Equal(dirExists, true);
 
