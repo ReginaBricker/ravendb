@@ -49,7 +49,8 @@ namespace Raven.Database.Storage.Esent.Backup
             if (Directory.Exists(CustomIndexesLocation) == false)
                 Directory.CreateDirectory(CustomIndexesLocation);
 
-			var logsPath = databaseLocation;
+         //   var logsPath = databaseLocation;
+            var logsPath = JournalLocation;
 
 			if (!string.IsNullOrWhiteSpace(configuration.Settings[Constants.RavenLogsPath]))
 			{
@@ -71,19 +72,23 @@ namespace Raven.Database.Storage.Esent.Backup
 
 			CopyIndexes();
 
-			var dataFilePath = Path.Combine(databaseLocation, "Data");
+          //  var dataFilePath = Path.Combine(databaseLocation, "Data");
+            var dataFilePath = Path.Combine(JournalLocation, "Data");
 
 			bool hideTerminationException = false;
 			JET_INSTANCE instance;
 			TransactionalStorage.CreateInstance(out instance, "restoring " + Guid.NewGuid());
 			try
 			{
-				new TransactionalStorageConfigurator(configuration, null).ConfigureInstance(instance, databaseLocation);
-				Api.JetRestoreInstance(instance, backupLocation, databaseLocation, RestoreStatusCallback);
-				var fileThatGetsCreatedButDoesntSeemLikeItShould =
+                //new TransactionalStorageConfigurator(configuration, null).ConfigureInstance(instance, databaseLocation);
+                //Api.JetRestoreInstance(instance, backupLocation, databaseLocation, RestoreStatusCallback);
+                new TransactionalStorageConfigurator(configuration, null).ConfigureInstance(instance, JournalLocation);
+                Api.JetRestoreInstance(instance, backupLocation, JournalLocation, RestoreStatusCallback);
+                var fileThatGetsCreatedButDoesntSeemLikeItShould =
 					new FileInfo(
 						Path.Combine(
-							new DirectoryInfo(databaseLocation).Parent.FullName, new DirectoryInfo(databaseLocation).Name + "Data"));
+                            new DirectoryInfo(JournalLocation).Parent.FullName, new DirectoryInfo(JournalLocation).Name + "Data"));
+							//new DirectoryInfo(databaseLocation).Parent.FullName, new DirectoryInfo(databaseLocation).Name + "Data"));
 
 				TransactionalStorage.DisableIndexChecking(instance);
 
@@ -95,7 +100,7 @@ namespace Raven.Database.Storage.Esent.Backup
 				if (defrag)
 				{
 					output("Esent Restore: Begin Database Compaction");
-					TransactionalStorage.Compact(configuration, CompactStatusCallback);
+					TransactionalStorage.Compact(configuration, CompactStatusCallback,JournalLocation);
 					output("Esent Restore: Database Compaction Completed");
 				}
 			}

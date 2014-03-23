@@ -35,7 +35,7 @@ namespace Raven.Database.Config
 	public class InMemoryRavenConfiguration
 	{
 	    public const string VoronTypeName = "voron";
-	    private const string EsentTypeName = "esent";
+        public const string EsentTypeName = "esent";
 	    private CompositionContainer container;
 		private bool containerExternallySet;
 		private string dataDirectory;

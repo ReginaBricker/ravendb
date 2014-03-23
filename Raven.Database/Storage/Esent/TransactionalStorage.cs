@@ -279,10 +279,14 @@ namespace Raven.Storage.Esent
             }
         }
 
-        public static void Compact(InMemoryRavenConfiguration ravenConfiguration, JET_PFNSTATUS statusCallback)
+        public static void Compact(InMemoryRavenConfiguration ravenConfiguration, JET_PFNSTATUS statusCallback,string journalLocation=null)
         {
-            var src = Path.Combine(ravenConfiguration.DataDirectory, "Data");
-            var compactPath = Path.Combine(ravenConfiguration.DataDirectory, "Data.Compact");
+            if (string.IsNullOrEmpty(journalLocation))
+                journalLocation = ravenConfiguration.DataDirectory;
+         //   var src = Path.Combine(ravenConfiguration.DataDirectory, "Data");
+            var src = Path.Combine(journalLocation, "Data");
+          //  var compactPath = Path.Combine(ravenConfiguration.DataDirectory, "Data.Compact");
+            var compactPath = Path.Combine(journalLocation, "Data.Compact");
 
             if (File.Exists(compactPath))
                 File.Delete(compactPath);
@@ -290,11 +294,13 @@ namespace Raven.Storage.Esent
 
 
             JET_INSTANCE compactInstance;
-            CreateInstance(out compactInstance, ravenConfiguration.DataDirectory + Guid.NewGuid());
+            CreateInstance(out compactInstance, journalLocation + Guid.NewGuid());
+         //   CreateInstance(out compactInstance, ravenConfiguration.DataDirectory + Guid.NewGuid());
             try
             {
                 new TransactionalStorageConfigurator(ravenConfiguration, null)
-                    .ConfigureInstance(compactInstance, ravenConfiguration.DataDirectory);
+                    .ConfigureInstance(compactInstance, journalLocation);
+  //                  .ConfigureInstance(compactInstance, ravenConfiguration.DataDirectory);
                 DisableIndexChecking(compactInstance);
                 Api.JetInit(ref compactInstance);
                 using (var session = new Session(compactInstance))
