@@ -13,6 +13,7 @@ using Raven.Json.Linq;
 using Raven.Tests.Storage;
 using Xunit;
 using Xunit.Extensions;
+using Raven.Database.Data;
 
 namespace Raven.Tests
 {
@@ -66,7 +67,12 @@ namespace Raven.Tests
 
             db.Dispose();
             IOExtensions.DeleteDirectory(DataDir);
-
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
             DocumentDatabase.Restore(new RavenConfiguration
             {
                 DefaultStorageTypeName = storageName,
@@ -78,7 +84,7 @@ namespace Raven.Tests
 	                {"Raven/Esent/CircularLog", "false"}
 	            }
 
-            }, BackupDir, DataDir, s => { }, defrag: true);
+            }, restoreRequest, s => { });
 
             db = new DocumentDatabase(new RavenConfiguration { DataDirectory = DataDir });
 
@@ -106,6 +112,12 @@ namespace Raven.Tests
 
             db.Dispose();
 
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
             //data directiory still exists --> should fail to restore backup
             Assert.Throws<IOException>(() => 
                 DocumentDatabase.Restore(new RavenConfiguration
@@ -119,7 +131,7 @@ namespace Raven.Tests
                         {"Raven/Esent/CircularLog", "false"}
                     }
 
-                }, BackupDir, DataDir, s => { }, defrag: true));
+                }, restoreRequest, s => { }));
         }
         
     }

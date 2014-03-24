@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Raven.Abstractions.Data;
 using Raven.Abstractions.MEF;
 using Raven.Database.Config;
+using Raven.Database.Data;
 using Raven.Database.Impl;
 using Raven.Database.Impl.DTC;
 using Raven.Database.Plugins;
@@ -31,7 +32,7 @@ namespace Raven.Database.Storage
 		void ExecuteImmediatelyOrRegisterForSynchronization(Action action);
 		bool Initialize(IUuidGenerator generator, OrderedPartCollection<AbstractDocumentCodec> documentCodecs);
 		void StartBackupOperation(DocumentDatabase database, string backupDestinationDirectory, bool incrementalBackup, DatabaseDocument documentDatabase);
-		void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag, string indexesLocation, string journalLocation);
+		void Restore(RestoreRequest restoreRequest, Action<string> output);
 		DatabaseSizeInformation GetDatabaseSize();
 		long GetDatabaseCacheSizeInBytes();
 		long GetDatabaseTransactionVersionSizeInBytes();

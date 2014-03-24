@@ -15,6 +15,7 @@ using Raven.Database.Config;
 using Raven.Database.Extensions;
 using Xunit;
 using Xunit.Extensions;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Issues
 {
@@ -102,7 +103,12 @@ namespace Raven.Tests.Issues
 				WaitForBackup(store.DocumentDatabase, true);
 
 				var output = new StringBuilder();
-
+                var restoreRequest = new RestoreRequest
+                {
+                    RestoreLocation = BackupDir,
+                    Defrag = true,
+                    DatabaseLocation = DataDir,
+                };
 				DocumentDatabase.Restore(new RavenConfiguration
 				{
 					Settings =
@@ -111,7 +117,7 @@ namespace Raven.Tests.Issues
 					{"Raven/Voron/AllowIncrementalBackups", "true"}
 				}
 
-				}, BackupDir, DataDir, s => output.Append(s), defrag: true);
+                }, restoreRequest, s => output.Append(s));
 
 				Assert.DoesNotContain("error", output.ToString().ToLower());
 

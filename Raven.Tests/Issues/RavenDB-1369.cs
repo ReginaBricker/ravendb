@@ -12,6 +12,7 @@ using Raven.Abstractions.Extensions;
 using Raven.Database.Extensions;
 using Raven.Client.Indexes;
 using System.Threading;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Issues
 {
@@ -57,28 +58,28 @@ namespace Raven.Tests.Issues
                 Directory.CreateDirectory(indexDefinitionsFolder);
 
             AddUser(store, "Fitzchak");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(incrBackupDir, true, new DatabaseDocument()));
+            Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(incrBackupDir, true, new DatabaseDocument()));
             WaitForBackup(store.DocumentDatabase, true);
             Thread.Sleep(2000);
 
 
             AddUser(store, "Oren");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(incrBackupDir, true, new DatabaseDocument()));
+            Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(incrBackupDir, true, new DatabaseDocument()));
             WaitForBackup(store.DocumentDatabase, true);
             Thread.Sleep(2000);
 
             AddUser(store, "Regina");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(incrBackupDir, true, new DatabaseDocument()));
+            Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(incrBackupDir, true, new DatabaseDocument()));
             WaitForBackup(store.DocumentDatabase, true);
             Thread.Sleep(2000);
 
             AddUser(store, "Michael");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(incrBackupDir, true, new DatabaseDocument()));
+            Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(incrBackupDir, true, new DatabaseDocument()));
             WaitForBackup(store.DocumentDatabase, true);
             Thread.Sleep(2000);
 
             AddUser(store, "Maxim");
-            Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(incrBackupDir, true, new DatabaseDocument()));
+            Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(incrBackupDir, true, new DatabaseDocument()));
             WaitForBackup(store.DocumentDatabase, true);
             Thread.Sleep(2000);
 
@@ -284,8 +285,15 @@ namespace Raven.Tests.Issues
                 {"Error", null}
             };
 
-            DocumentDatabase.Restore(ravenConfiguration, backupDir, null,
-                msg => { restoreStatus.Messages.Add(msg); }, defrag, indexesLocation, journalLocation);
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = backupDir,
+                Defrag = defrag,
+                IndexesLocation = indexesLocation,
+                JournalLocation = journalLocation
+            };
+            DocumentDatabase.Restore(ravenConfiguration, restoreRequest,
+                msg => { restoreStatus.Messages.Add(msg); });
             return true;
         }
 
@@ -316,7 +324,7 @@ namespace Raven.Tests.Issues
                                            .ToList();
                 }
                 //!! good 
-                Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(voronBackupDir, false, new DatabaseDocument()));
+                Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(voronBackupDir, false, new DatabaseDocument()));
                 WaitForBackup(store.DocumentDatabase, true);
 
             }
@@ -423,7 +431,7 @@ namespace Raven.Tests.Issues
                                             .ToList();
                  }
                  //!! good 
-                 Assert.DoesNotThrow(() => store.DocumentDatabase.StartBackup(esentBackupDir, false, new DatabaseDocument()));
+                 Assert.DoesNotThrow(() => store.DocumentDatabase.Maintenance.StartBackup(esentBackupDir, false, new DatabaseDocument()));
                  WaitForBackup(store.DocumentDatabase, true);
 
              }

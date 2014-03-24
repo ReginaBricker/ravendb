@@ -8,6 +8,7 @@ using Raven.Database.Extensions;
 using Raven.Json.Linq;
 using Xunit;
 using Xunit.Extensions;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Storage
 {
@@ -65,7 +66,12 @@ namespace Raven.Tests.Storage
 
 			db.Dispose();
 			IOExtensions.DeleteDirectory(DataDir);
-
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
 			DocumentDatabase.Restore(new RavenConfiguration
 			{
                 DefaultStorageTypeName = storageName,
@@ -78,7 +84,7 @@ namespace Raven.Tests.Storage
 					{"Raven/Voron/AllowIncrementalBackups", "true"}
 	            }
 
-			}, BackupDir, DataDir, s => { }, defrag: true);
+            }, restoreRequest, s => { });
 
 			db = new DocumentDatabase(new RavenConfiguration { DataDirectory = DataDir });
 
@@ -123,7 +129,12 @@ namespace Raven.Tests.Storage
 
             db.Dispose();
             IOExtensions.DeleteDirectory(DataDir);
-
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
             DocumentDatabase.Restore(new RavenConfiguration
             {
                 DefaultStorageTypeName = storageName,
@@ -136,7 +147,7 @@ namespace Raven.Tests.Storage
 					{"Raven/Voron/AllowIncrementalBackups", "true"}
 	            }
 
-            }, BackupDir, DataDir, s => { }, defrag: true);
+            }, restoreRequest, s => { });
 
             db = new DocumentDatabase(new RavenConfiguration { DataDirectory = DataDir });
 

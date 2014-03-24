@@ -8,6 +8,7 @@ using System.IO;
 using Microsoft.Isam.Esent.Interop;
 using Raven.Abstractions.Logging;
 using Raven.Database.Config;
+using Raven.Database.Data;
 using Raven.Database.Extensions;
 using Raven.Abstractions.Data;
 using System.Linq;
@@ -19,10 +20,10 @@ namespace Raven.Database.Storage.Esent.Backup
 	{
 		private readonly bool defrag;
 
-        public RestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback, bool defrag, string customIndexesLocation, string journalLocation)
-            : base(backupLocation, configuration, operationOutputCallback, customIndexesLocation, journalLocation)
+        public RestoreOperation(RestoreRequest restoreRequest, InMemoryRavenConfiguration configuration, Action<string> operationOutputCallback)
+            : base(restoreRequest, configuration, operationOutputCallback)
 		{
-			this.defrag = defrag;
+            this.defrag = restoreRequest.Defrag;
 		}
 
 		public override void Execute()
@@ -34,15 +35,15 @@ namespace Raven.Database.Storage.Esent.Backup
 				throw new InvalidOperationException(backupLocation + " doesn't look like a valid backup");
 			}
 
-			if (Directory.Exists(databaseLocation) && Directory.GetFileSystemEntries(databaseLocation).Length > 0)
+			if (Directory.Exists(DatabaseLocation) && Directory.GetFileSystemEntries(DatabaseLocation).Length > 0)
 			{
 				output("Error: Database already exists, cannot restore to an existing database.");
 				output("Error: Restore Canceled");
 				throw new IOException("Database already exists, cannot restore to an existing database.");
 			}
 
-			if (Directory.Exists(databaseLocation) == false)
-				Directory.CreateDirectory(databaseLocation);
+			if (Directory.Exists(DatabaseLocation) == false)
+				Directory.CreateDirectory(DatabaseLocation);
 
             //if (Directory.Exists(indexLocation) == false)
             //    Directory.CreateDirectory(indexLocation);
@@ -52,9 +53,9 @@ namespace Raven.Database.Storage.Esent.Backup
          //   var logsPath = databaseLocation;
             var logsPath = JournalLocation;
 
-			if (!string.IsNullOrWhiteSpace(configuration.Settings[Constants.RavenLogsPath]))
+			if (!string.IsNullOrWhiteSpace(Configuration.Settings[Constants.RavenLogsPath]))
 			{
-				logsPath = configuration.Settings[Constants.RavenLogsPath].ToFullPath();
+				logsPath = Configuration.Settings[Constants.RavenLogsPath].ToFullPath();
 
 				if (Directory.Exists(logsPath) == false)
 				{
@@ -82,7 +83,7 @@ namespace Raven.Database.Storage.Esent.Backup
 			{
                 //new TransactionalStorageConfigurator(configuration, null).ConfigureInstance(instance, databaseLocation);
                 //Api.JetRestoreInstance(instance, backupLocation, databaseLocation, RestoreStatusCallback);
-                new TransactionalStorageConfigurator(configuration, null).ConfigureInstance(instance, JournalLocation);
+                new TransactionalStorageConfigurator(Configuration, null).ConfigureInstance(instance, JournalLocation);
                 Api.JetRestoreInstance(instance, backupLocation, JournalLocation, RestoreStatusCallback);
                 var fileThatGetsCreatedButDoesntSeemLikeItShould =
 					new FileInfo(
@@ -100,7 +101,7 @@ namespace Raven.Database.Storage.Esent.Backup
 				if (defrag)
 				{
 					output("Esent Restore: Begin Database Compaction");
-					TransactionalStorage.Compact(configuration, CompactStatusCallback,JournalLocation);
+					TransactionalStorage.Compact(Configuration, CompactStatusCallback,JournalLocation);
 					output("Esent Restore: Database Compaction Completed");
 				}
 			}

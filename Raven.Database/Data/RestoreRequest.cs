@@ -11,6 +11,7 @@ namespace Raven.Database.Data
 		public string DatabaseLocation { get; set; }
 		public string DatabaseName { get; set; }
 
+        public bool Defrag { get; set; }
         public string JournalLocation { get; set; }
         public string IndexesLocation { get; set; }
     }

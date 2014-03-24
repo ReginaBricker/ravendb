@@ -18,6 +18,7 @@ using Raven.Json.Linq;
 using Raven.Tests.Bundles.MoreLikeThis;
 using Xunit;
 using Xunit.Extensions;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Issues
 {
@@ -77,8 +78,13 @@ namespace Raven.Tests.Issues
 			File.Delete(combine);
 
 			var sb = new StringBuilder();
-
-			DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => sb.Append(s), defrag: true);
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
+            DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
 
 			Assert.Contains(
 				"could not be restored. All already copied index files was deleted." +
@@ -143,8 +149,13 @@ namespace Raven.Tests.Issues
 			using (var file = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
 			{
 				var sb = new StringBuilder();
-
-				DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => sb.Append(s), defrag: true);
+                var restoreRequest = new RestoreRequest
+                {
+                    RestoreLocation = BackupDir,
+                    Defrag = true,
+                    DatabaseLocation = DataDir,
+                };
+                DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
 
 				Assert.Contains(
 					"could not be restored. All already copied index files was deleted." +

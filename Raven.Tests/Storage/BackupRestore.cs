@@ -14,6 +14,7 @@ using Raven.Database.Config;
 using Raven.Database.Extensions;
 using Raven.Json.Linq;
 using Xunit;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Storage
 {
@@ -52,8 +53,13 @@ namespace Raven.Tests.Storage
 
 			db.Dispose();
 			IOExtensions.DeleteDirectory(DataDir);
-
-			DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => { }, defrag: true);
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
+			DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => { });
 
 			db = new DocumentDatabase(new RavenConfiguration {DataDirectory = DataDir});
 
@@ -75,8 +81,13 @@ namespace Raven.Tests.Storage
 
 			db.Dispose();
 			IOExtensions.DeleteDirectory(DataDir);
-
-			DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => { }, defrag: true);
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
+            DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => { });
 
 			db = new DocumentDatabase(new RavenConfiguration { DataDirectory = DataDir });
 			db.SpinBackgroundWorkers();
@@ -113,8 +124,13 @@ namespace Raven.Tests.Storage
 
 			db.Dispose();
 			IOExtensions.DeleteDirectory(DataDir);
-
-			DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => { }, defrag: true);
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = true,
+                DatabaseLocation = DataDir,
+            };
+            DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => { });
 
 			db = new DocumentDatabase(new RavenConfiguration { DataDirectory = DataDir });
 

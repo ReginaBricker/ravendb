@@ -17,6 +17,7 @@ using Raven.Json.Linq;
 using Raven.Tests.Helpers;
 using Xunit;
 using Raven.Backup;
+using Raven.Database.Data;
 
 namespace Raven.Tests.Issues
 {
@@ -49,8 +50,13 @@ namespace Raven.Tests.Issues
 			        WaitForBackup(ravenServer.SystemDatabase, true);
 			    }
 			}
-
-			Assert.DoesNotThrow(() => DocumentDatabase.Restore(new RavenConfiguration(), BackupDir, DataDir, s => { }, defrag: false));
+            var restoreRequest = new RestoreRequest
+            {
+                RestoreLocation = BackupDir,
+                Defrag = false,
+                DatabaseLocation = DataDir,
+            };
+			Assert.DoesNotThrow(() => DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest , s => { }));
 
 		}
 	}

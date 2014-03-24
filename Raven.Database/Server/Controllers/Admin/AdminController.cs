@@ -131,17 +131,18 @@ namespace Raven.Database.Server.Controllers.Admin
 			ravenConfiguration.DataDirectory = ResolveTenantDataDirectory(restoreRequest.DatabaseLocation, databaseName, out documentDataDir);
 
 			DatabasesLandlord.SystemDatabase.Documents.Delete(RestoreStatus.RavenRestoreStatusDocumentKey, null, null);
-			var defrag = "true".Equals(GetQueryStringValue("defrag"), StringComparison.InvariantCultureIgnoreCase);
+		    if ("true".Equals(GetQueryStringValue("defrag"), StringComparison.InvariantCultureIgnoreCase))
+		        restoreRequest.Defrag = true;
 
             await Task.Factory.StartNew(() =>
             {
-                DocumentDatabase.Restore(ravenConfiguration, restoreRequest.RestoreLocation, null,
+                MaintenanceActions.Restore(ravenConfiguration, restoreRequest,
                     msg =>
                     {
                         restoreStatus.Messages.Add(msg);
                         DatabasesLandlord.SystemDatabase.Documents.Put(RestoreStatus.RavenRestoreStatusDocumentKey, null,
                             RavenJObject.FromObject(restoreStatus), new RavenJObject(), null);
-                    }, defrag);
+                    });
 
                 if (databaseDocument == null)
                     return;

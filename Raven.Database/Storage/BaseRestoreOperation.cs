@@ -5,6 +5,7 @@ using Raven.Abstractions.Data;
 using Raven.Abstractions.Logging;
 using Raven.Database.Config;
 using Raven.Database.Extensions;
+using Raven.Database.Data;
 
 namespace Raven.Database.Storage
 {
@@ -19,17 +20,17 @@ namespace Raven.Database.Storage
         protected  string CustomIndexesLocation { get; set; }
         protected string JournalLocation { get; set; }
 
-        protected readonly InMemoryRavenConfiguration configuration;
-        protected string databaseLocation { get { return configuration.DataDirectory.ToFullPath(); } }
-        protected string indexLocation { get { return configuration.IndexStoragePath.ToFullPath(); } }
+        protected readonly InMemoryRavenConfiguration Configuration;
+        protected string DatabaseLocation { get { return Configuration.DataDirectory.ToFullPath(); } }
+        protected string IndexLocation { get { return Configuration.IndexStoragePath.ToFullPath(); } }
 
-        protected BaseRestoreOperation(string backupLocation, InMemoryRavenConfiguration configuration, Action<string> output, string customIndexesLocation=null, string journalLocation=null)
+        protected BaseRestoreOperation(RestoreRequest restoreRequest, InMemoryRavenConfiguration configuration, Action<string> output)
         {
-            this.backupLocation = backupLocation;
-            this.configuration = configuration;
+            this.backupLocation = restoreRequest.RestoreLocation;
+            this.Configuration = configuration;
             this.output = output;
-            this.CustomIndexesLocation = string.IsNullOrEmpty(customIndexesLocation) ? indexLocation : customIndexesLocation;
-            this.JournalLocation = string.IsNullOrEmpty(journalLocation) ? databaseLocation : journalLocation;
+            this.CustomIndexesLocation = string.IsNullOrEmpty(restoreRequest.IndexesLocation) ? IndexLocation : restoreRequest.IndexesLocation;
+            this.JournalLocation = string.IsNullOrEmpty(restoreRequest.JournalLocation) ? DatabaseLocation : restoreRequest.JournalLocation;
 
 
         }
@@ -54,26 +55,24 @@ namespace Raven.Database.Storage
                 throw new InvalidOperationException(backupLocation + " doesn't look like a valid backup");
             }
 
-            if (Directory.Exists(databaseLocation) && Directory.GetFileSystemEntries(databaseLocation).Length > 0)
+            if (Directory.Exists(DatabaseLocation) && Directory.GetFileSystemEntries(DatabaseLocation).Length > 0)
             {
                 output("Error: Database already exists, cannot restore to an existing database.");
                 output("Error: Restore Canceled");
                 throw new IOException("Database already exists, cannot restore to an existing database.");
             }
 
-            if (Directory.Exists(databaseLocation) == false)
-                Directory.CreateDirectory(databaseLocation);
+            if (Directory.Exists(DatabaseLocation) == false)
+                Directory.CreateDirectory(DatabaseLocation);
 
-           // if (Directory.Exists(indexLocation) == false)
-           //     Directory.CreateDirectory(indexLocation);
             if (Directory.Exists(CustomIndexesLocation) == false)
                 Directory.CreateDirectory(CustomIndexesLocation);
 
-            var logsPath = databaseLocation;
+            var logsPath = DatabaseLocation;
 
-            if (string.IsNullOrWhiteSpace(configuration.Settings[Constants.RavenLogsPath])) return logsPath;
+            if (string.IsNullOrWhiteSpace(Configuration.Settings[Constants.RavenLogsPath])) return logsPath;
 
-            logsPath = configuration.Settings[Constants.RavenLogsPath].ToFullPath();
+            logsPath = Configuration.Settings[Constants.RavenLogsPath].ToFullPath();
 
             if (Directory.Exists(logsPath) == false)
             {
@@ -131,7 +130,7 @@ namespace Raven.Database.Storage
 												  .ToList();
 
 			string indexDefinitionsBackupFolder;
-			string indexDefinitionsDestinationFolder = Path.Combine(databaseLocation, "IndexDefinitions");
+			string indexDefinitionsDestinationFolder = Path.Combine(DatabaseLocation, "IndexDefinitions");
 			if (directories.Count == 0)
 			    indexDefinitionsBackupFolder = Path.Combine(backupLocation, "IndexDefinitions");
 		    else
@@ -166,7 +165,6 @@ namespace Raven.Database.Storage
                 foreach (var backupIndex in Directory.GetDirectories(Path.Combine(backupLocation, IndexesSubfolder)))
                 {
                     var indexName = Path.GetFileName(backupIndex);
-                  //!!  var indexPath = Path.Combine(indexLocation, indexName);
                     var indexPath = Path.Combine(CustomIndexesLocation, indexName);
 
                     try
@@ -192,7 +190,6 @@ namespace Raven.Database.Storage
             foreach (var index in Directory.GetDirectories(Path.Combine(latestIncrementalBackupDirectory, IndexesSubfolder)))
             {
                 var indexName = Path.GetFileName(index);
-               // var indexPath = Path.Combine(indexLocation, indexName);
                 var indexPath = Path.Combine(CustomIndexesLocation, indexName);
 
                 try

@@ -2,6 +2,7 @@
 using Raven.Abstractions.Exceptions;
 using Raven.Abstractions.Util.Streams;
 using Raven.Database;
+using Raven.Database.Data;
 using Raven.Database.Storage;
 using Raven.Database.Storage.Voron;
 using Raven.Database.Storage.Voron.Backup;
@@ -255,9 +256,9 @@ namespace Raven.Storage.Voron
             Task.Factory.StartNew(backupOperation.Execute);
 		}       
 
-		public void Restore(string backupLocation, string databaseLocation, Action<string> output, bool defrag, string indexesLocation, string journalLocation)
+		public void Restore(RestoreRequest restoreRequest, Action<string> output)
 		{
-            new RestoreOperation(backupLocation, configuration, output, indexesLocation, journalLocation).Execute();
+            new RestoreOperation(restoreRequest, configuration, output).Execute();
 		}
 
 	    public DatabaseSizeInformation GetDatabaseSize()
