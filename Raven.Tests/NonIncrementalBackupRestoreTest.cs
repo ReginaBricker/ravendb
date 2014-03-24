@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Raven.Abstractions.Data;
 using Raven.Client.Indexes;
 using Raven.Database;
+using Raven.Database.Actions;
 using Raven.Database.Config;
 using Raven.Database.Extensions;
 using Raven.Json.Linq;
@@ -73,7 +74,7 @@ namespace Raven.Tests
                 Defrag = true,
                 DatabaseLocation = DataDir,
             };
-            DocumentDatabase.Restore(new RavenConfiguration
+            MaintenanceActions.Restore(new RavenConfiguration
             {
                 DefaultStorageTypeName = storageName,
                 DataDirectory = DataDir,
@@ -119,8 +120,8 @@ namespace Raven.Tests
                 DatabaseLocation = DataDir,
             };
             //data directiory still exists --> should fail to restore backup
-            Assert.Throws<IOException>(() => 
-                DocumentDatabase.Restore(new RavenConfiguration
+            Assert.Throws<IOException>(() =>
+                MaintenanceActions.Restore(new RavenConfiguration
                 {
                     DefaultStorageTypeName = storageName,
                     DataDirectory = DataDir,

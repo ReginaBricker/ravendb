@@ -12,6 +12,7 @@ using Mono.CSharp;
 using Raven.Abstractions.Data;
 using Raven.Client.Indexes;
 using Raven.Database;
+using Raven.Database.Actions;
 using Raven.Database.Config;
 using Raven.Database.Extensions;
 using Raven.Json.Linq;
@@ -84,7 +85,7 @@ namespace Raven.Tests.Issues
                 Defrag = true,
                 DatabaseLocation = DataDir,
             };
-            DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
+            MaintenanceActions.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
 
 			Assert.Contains(
 				"could not be restored. All already copied index files was deleted." +
@@ -155,7 +156,7 @@ namespace Raven.Tests.Issues
                     Defrag = true,
                     DatabaseLocation = DataDir,
                 };
-                DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
+                MaintenanceActions.Restore(new RavenConfiguration(), restoreRequest, s => sb.Append(s));
 
 				Assert.Contains(
 					"could not be restored. All already copied index files was deleted." +

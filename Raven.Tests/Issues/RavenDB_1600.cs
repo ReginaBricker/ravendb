@@ -4,6 +4,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 using System.Threading;
+using Raven.Database.Actions;
 using Raven.Database.Data;
 
 namespace Raven.Tests.Issues
@@ -86,7 +87,7 @@ namespace Raven.Tests.Issues
                 Defrag = true,
                 DatabaseLocation = DataDir,
             };
-            DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest, s => { });
+            MaintenanceActions.Restore(new RavenConfiguration(), restoreRequest, s => { });
 
 			using (var db = new DocumentDatabase(new RavenConfiguration
 			{

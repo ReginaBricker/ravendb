@@ -817,10 +817,6 @@ namespace Raven.Database
                 throw;
             }
         }
-        public static void Restore(RavenConfiguration configuration, RestoreRequest restoreRequest, Action<string> output)
-        {
-            MaintenanceActions.Restore(configuration, restoreRequest, output);
-        }
 
         public void Rollback(string txId)
         {

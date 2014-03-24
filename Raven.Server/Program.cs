@@ -381,7 +381,7 @@ Configuration options:
                     DatabaseLocation = databaseLocation,
                     Defrag = defrag
 			    };
-			    DocumentDatabase.Restore(ravenConfiguration, restoreRequest, Console.WriteLine);
+                MaintenanceActions.Restore(ravenConfiguration, restoreRequest, Console.WriteLine);
                 
 			}
 			catch (Exception e)

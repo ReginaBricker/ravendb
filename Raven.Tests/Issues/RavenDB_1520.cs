@@ -12,6 +12,7 @@ using Raven.Abstractions.Data;
 using Raven.Client.Connection;
 using Raven.Client.Document;
 using Raven.Database;
+using Raven.Database.Actions;
 using Raven.Database.Config;
 using Raven.Json.Linq;
 using Raven.Tests.Helpers;
@@ -56,7 +57,7 @@ namespace Raven.Tests.Issues
                 Defrag = false,
                 DatabaseLocation = DataDir,
             };
-			Assert.DoesNotThrow(() => DocumentDatabase.Restore(new RavenConfiguration(), restoreRequest , s => { }));
+            Assert.DoesNotThrow(() => MaintenanceActions.Restore(new RavenConfiguration(), restoreRequest, s => { }));
 
 		}
 	}

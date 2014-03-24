@@ -3,6 +3,7 @@ using System.Threading;
 using Raven.Abstractions.Data;
 using Raven.Client.Indexes;
 using Raven.Database;
+using Raven.Database.Actions;
 using Raven.Database.Config;
 using Raven.Database.Extensions;
 using Raven.Json.Linq;
@@ -72,7 +73,7 @@ namespace Raven.Tests.Storage
                 Defrag = true,
                 DatabaseLocation = DataDir,
             };
-			DocumentDatabase.Restore(new RavenConfiguration
+			MaintenanceActions.Restore(new RavenConfiguration
 			{
                 DefaultStorageTypeName = storageName,
                 DataDirectory = DataDir,
@@ -135,7 +136,7 @@ namespace Raven.Tests.Storage
                 Defrag = true,
                 DatabaseLocation = DataDir,
             };
-            DocumentDatabase.Restore(new RavenConfiguration
+            MaintenanceActions.Restore(new RavenConfiguration
             {
                 DefaultStorageTypeName = storageName,
                 DataDirectory = DataDir,
