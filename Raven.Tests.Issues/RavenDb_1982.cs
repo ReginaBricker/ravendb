@@ -112,12 +112,18 @@ namespace Raven.Tests.Issues
                     using (var session = store.OpenSession())
                     {
                         var res= session.Load<PropertyTransformer, object>(property.Id);
+                        session.Advanced.Evict(property.Id);
+                    
 
-                        var result = session.Load<Property>(property.Id);
-                        var l = session.Advanced.NumberOfRequests;
-                        var l1 = session.Advanced.IsLoaded(result.CityId);
-                       // var loadCity = session.Load<Region>(result.CityId);
+                            var result = session.Load<Property>(property.Id);
+                            session.Advanced.Evict(result);
+                            result = session.Load<Property>(property.Id);
+                            //var l = session.Advanced.NumberOfRequests;
+                            //var l1 = session.Advanced.IsLoaded(result.CityId);
+                      //??   var loadCity1 = session.Load<Region>(result.CityId);
                         var loadCity = session.Load<City>(result.CityId);
+                        var l2 = session.Advanced.IsLoaded(result.CityId);
+
                         var l3 = session.Advanced.NumberOfRequests;
                         //Assert.True(session.Advanced.NumberOfRequests == 1); //The .Load<> Call
 
