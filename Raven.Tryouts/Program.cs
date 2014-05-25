@@ -1,168 +1,263 @@
 ﻿using System;
 using System.Collections.Generic;
 using NLog;
-using Raven.Client;
+using Raven.Abstractions.Indexing;
 using Raven.Client.Document;
+using Raven.Client.Embedded;
 using Raven.Client.Extensions;
 using Raven.Client.Indexes;
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Raven.Database.Client;
+using Raven.Client.Linq;
+using Raven.Tests.Helpers;
 using Raven.Tests.Issues;
+using System;
+using System.Linq;
+using Raven.Tests.Spatial;
+using Raven.Tryouts;
+using SpatialIndexSamples;
 using Xunit;
-namespace Raven.Tryouts
-{
-	class Program
-	{
-		private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-		private static void Main(string[] args)
-		{
-		    using (var test = new RavenDb_2239())
-		    {
-                using (var store = new DocumentStore { Url = "http://localhost:8080",DefaultDatabase = "TestDB"}) //requestedStorage: "esent"))
+namespace Raven.Abstractions.Tests
+{
+
+    public class SpatialDoc
+    {
+        public string Id { get; set; }
+        public string Shape { get; set; }
+    }
+
+    public class BBoxIndex : AbstractIndexCreationTask<SpatialDoc>
+    {
+        public BBoxIndex()
+        {
+            Map = docs => from doc in docs
+                          select new
+                          {
+                              doc.Shape
+                          };
+
+            Spatial(x => x.Shape, x => x.Cartesian.BoundingBoxIndex());
+        }
+    }
+
+    public class QuadTreeIndex : AbstractIndexCreationTask<SpatialDoc>
+    {
+        public QuadTreeIndex()
+        {
+            Map = docs => from doc in docs
+                          select new
+                          {
+                              doc.Shape
+                          };
+
+          //  Spatial(x => x.Shape, x => x.Cartesian.QuadPrefixTreeIndex(6, new SpatialBounds(0, 0, 16, 16)));
+            Spatial(x => x.Shape, x => x.Cartesian.QuadPrefixTreeIndex(6, new SpatialBounds(0, 0, 3, 3)));
+        }
+    }
+
+    public class QuadTreeIndexGeographic : AbstractIndexCreationTask<SpatialDoc>
+    {
+        public QuadTreeIndexGeographic()
+        {
+            Map = docs => from doc in docs
+                          select new
+                          {
+                              doc.Shape
+                          };
+
+            Spatial(x => x.Shape, x => x.Geography.QuadPrefixTreeIndex(5));
+        }
+    }
+
+
+    public class TestDoc
+    {
+        public int X { get; set; }
+
+        public int Y { get; set; }
+    }
+
+    public class NumericIndex : AbstractIndexCreationTask<TestDoc>
+    {
+        public NumericIndex()
+        {
+            Map = docs => from doc in docs
+                          select new
+                          {
+                              X = doc.X / doc.Y
+                          };
+
+
+        }
+    }
+
+
+    internal class Program
+    {
+
+
+        private static void Main(string[] args)
+        {
+            //  var sample = new GeohashPrecisionSample();
+            //   sample.Execute();
+//            using (var store = new EmbeddableDocumentStore { RunInMemory = true })
+//            {
+//                store.Initialize();
+//                new NumericIndex().Execute(store);
+//
+//                using (var session = store.OpenSession())
+//                {
+//                    for (int i = 0; i < 100; i++)
+//                        session.Store(new TestDoc { X = i, Y = (i % 5 == 0) ? 0 : i });
+//
+//                    session.SaveChanges();
+//                }
+//
+//                using (var session = store.OpenSession())
+//                {
+//                    var count = session.Query<TestDoc, NumericIndex>()
+//                        .Customize(x => x.WaitForNonStaleResults())
+//                        .Count();
+//
+//                    var stats = store.DatabaseCommands.GetStatistics();
+//                }
+//            }
+
+//            var sample = new GeographicalVsCartesianSample();
+//            sample.ExecuteIntersect();
+
+//            // X XXX X
+//            // X XXX X
+//            // X XXX X
+//            // X	 X
+//            // XXXXXXX
+//
+            var polygon = "POLYGON ((0 0, 0 5, 1 5, 1 1, 5 1, 5 5, 6 5, 6 0, 0 0))";
+            var simplePolygon = "POLYGON ((1 1, 1 4, 4 4, 4 1,1 1))";
+            var simpleRectangle1 = "POLYGON((0 0 ,0 5 ,5 5, 5 0, 0 0))";
+            var simpleRectangle2 = "POLYGON((1 2 ,2 3 ,3 3, 3 2, 1 2))";
+
+            var rectangle1 = "2 2 4 4";
+            var rectangle2 = "6 6 10 10";
+            var rectangle3 = "0 0 6 6";
+            var rectangle4 = "1 2 3 3";
+//
+            using (var store = new EmbeddableDocumentStore
+            {
+                RunInMemory = true,
+                UseEmbeddedHttpServer = true
+            })
+            {
+                store.Initialize();
+
+                new BBoxIndex().Execute(store);
+                new QuadTreeIndex().Execute(store);
+                new QuadTreeIndexGeographic().Execute(store);
+//
+                using (var session = store.OpenSession())
                 {
-                    store.Initialize();
-                    store.DatabaseCommands.GlobalAdmin.EnsureDatabaseExists("TestDB");
-
-                    Console.WriteLine("Press any key to begin test");
-                    Console.ReadLine();
-                    test.SetupData(store);
+                    session.Store(new SpatialDoc {Shape = polygon});
+                    session.SaveChanges();
                 }
-		    }
-		}
-	}
 
-	public class OrderTotalResult
-	{
-		public string Employee, Company;
-		public decimal Total;
-	}
-}
+                using (var session = store.OpenSession())
+                {
+                    var result = session.Query<SpatialDoc>()
+                        .Customize(x => x.WaitForNonStaleResults())
+                        .Count();
+//
+//
+//                    var res1 = session.Query<SpatialDoc, BBoxIndex>()
+//                                            .Spatial(x => x.Shape, x => x.Within(rectangle3)) ;
 
-namespace Orders
-{
-	public class Company
-	{
-		public string Id { get; set; }
-		public string ExternalId { get; set; }
-		public string Name { get; set; }
-		public Contact Contact { get; set; }
-		public Address Address { get; set; }
-		public string Phone { get; set; }
-		public string Fax { get; set; }
-	}
+                    /*                   var result0 = session.Query<SpatialDoc, BBoxIndex>()
+                                   .Customize(x => x.WaitForNonStaleResults())
+                                   .Spatial(x => x.Shape, x => x.Contains(rectangle4)).ToList();
+                    var result01 = session.Query<SpatialDoc, BBoxIndex>()
+                                     .Customize(x => x.WaitForNonStaleResults())
+                                     .Spatial(x => x.Shape, x => x.Contains(simpleRectangle2)).ToList();
+ */
 
-	public class Address
-	{
-		public string Line1 { get; set; }
-		public string Line2 { get; set; }
-		public string City { get; set; }
-		public string Region { get; set; }
-		public string PostalCode { get; set; }
-		public string Country { get; set; }
-	}
+//                    var result2 = session.Query<SpatialDoc, BBoxIndex>()
+//                                       .Customize(x => x.WaitForNonStaleResults())
+//                                       .Spatial(x => x.Shape, x => x.Contains(simpleRectangle1)).ToList();
+//
+//                    var result21 = session.Query<SpatialDoc, QuadTreeIndex>()
+//                    .Customize(x => x.WaitForNonStaleResults())
+//                    .Spatial(x => x.Shape, x => x.Intersects(simpleRectangle1)).ToList();
 
-	public class Contact
-	{
-		public string Name { get; set; }
-		public string Title { get; set; }
-	}
+                    //except
+                    var result21 = session.Query<SpatialDoc, QuadTreeIndex>()
+                        .Customize(x => x.WaitForNonStaleResults())
+                        .Spatial(x => x.Shape, x => x.Contains(simpleRectangle1)).ToList();
 
-	public class Category
-	{
-		public string Id { get; set; }
-		public string Name { get; set; }
-		public string Description { get; set; }
-	}
+                }
 
-	public class Order
-	{
-		public string Id { get; set; }
-		public string Company { get; set; }
-		public string Employee { get; set; }
-		public DateTime OrderedAt { get; set; }
-		public DateTime RequireAt { get; set; }
-		public DateTime? ShippedAt { get; set; }
-		public Address ShipTo { get; set; }
-		public string ShipVia { get; set; }
-		public decimal Freight { get; set; }
-		public List<OrderLine> Lines { get; set; }
-	}
+//                using (var session = store.OpenSession())
+//                {
+//                    //var result = session.Query<SpatialDoc, BBoxIndex>()
+//                    //    .Customize(x => x.WaitForNonStaleResults())
+//                    //    .Spatial(x => x.Shape, x => x.Intersects(rectangle1))
+//                    //    .Count();
+//                    var result = session.Query<SpatialDoc, BBoxIndex>()
+//                        .Customize(x => x.WaitForNonStaleResults())
+//                        .Spatial(x => x.Shape, x => x.Intersects(rectangle1)).ToList();
+//
+//                    var quantity = result.Count;
+//                    //
+//                    //                    var result2 = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+//                    //                                         .Spatial(x => x.Shape, x => x.Intersects(rectangle1))
+//                    //                                         .Count();
+//                    //
+//                    //                    Assert.Equal(1, result);
+//                    //                    Assert.Equal(1, result2);
+//                }
 
-	public class OrderLine
-	{
-		public string Product { get; set; }
-		public string ProductName { get; set; }
-		public decimal PricePerUnit { get; set; }
-		public int Quantity { get; set; }
-		public decimal Discount { get; set; }
-	}
+                //    using (var session = store.OpenSession())
+                //    {
+                //        var result = session.Query<SpatialDoc, BBoxIndex>()
+                //                            .Spatial(x => x.Shape, x => x.Intersects(rectangle2))
+                //                            .Count();
 
-	public class Product
-	{
-		public string Id { get; set; }
-		public string Name { get; set; }
-		public string Supplier { get; set; }
-		public string Category { get; set; }
-		public string QuantityPerUnit { get; set; }
-		public decimal PricePerUser { get; set; }
-		public int UnitsInStock { get; set; }
-		public int UnitsOnOrder { get; set; }
-		public bool Discontinued { get; set; }
-		public int ReorderLevel { get; set; }
-	}
+                //        Assert.Equal(0, result);
+                //    }
 
-	public class Supplier
-	{
-		public string Id { get; set; }
-		public Contact Contact { get; set; }
-		public string Name { get; set; }
-		public Address Address { get; set; }
-		public string Phone { get; set; }
-		public string Fax { get; set; }
-		public string HomePage { get; set; }
-	}
+                //    using (var session = store.OpenSession())
+                //    {
+                //        var result = session.Query<SpatialDoc, BBoxIndex>()
+                //                            .Spatial(x => x.Shape, x => x.Disjoint(rectangle2))
+                //                            .Count();
 
-	public class Employee
-	{
-		public string Id { get; set; }
-		public string LastName { get; set; }
-		public string FirstName { get; set; }
-		public string Title { get; set; }
-		public Address Address { get; set; }
-		public DateTime HiredAt { get; set; }
-		public DateTime Birthday { get; set; }
-		public string HomePhone { get; set; }
-		public string Extension { get; set; }
-		public string ReportsTo { get; set; }
-		public List<string> Notes { get; set; }
+                //        Assert.Equal(1, result);
+                //    }
 
-		public List<string> Territories { get; set; }
-	}
+                //    using (var session = store.OpenSession())
+                //    {
+                //        var result = session.Query<SpatialDoc, BBoxIndex>()
+                //                            .Spatial(x => x.Shape, x => x.Within(rectangle3))
+                //                            .Count();
 
-	public class Region
-	{
-		public string Id { get; set; }
-		public string Name { get; set; }
-		public List<Territory> Territories { get; set; }
-	}
+                //        Assert.Equal(1, result);
+                //    }
 
-	public class Territory
-	{
-		public string Code { get; set; }
-		public string Name { get; set; }
-	}
+                //    using (var session = store.OpenSession())
+                //    {
+                //        var result = session.Query<SpatialDoc, QuadTreeIndex>()
+                //                            .Spatial(x => x.Shape, x => x.Intersects(rectangle2))
+                //                            .Count();
 
-	public class Shipper
-	{
-		public string Id { get; set; }
-		public string Name { get; set; }
-		public string Phone { get; set; }
-	}
+                //        Assert.Equal(0, result);
+                //    }
+
+                //    using (var session = store.OpenSession())
+                //    {
+                //        var result = session.Query<SpatialDoc, QuadTreeIndex>()
+                //                            .Spatial(x => x.Shape, x => x.Intersects(rectangle1))
+                //                            .Count();
+
+                //        Assert.Equal(0, result);
+                //    }
+                //}
+            }
+        }
+    }
 }
