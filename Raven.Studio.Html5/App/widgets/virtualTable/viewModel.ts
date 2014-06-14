@@ -376,8 +376,11 @@ class ctor {
 
             // Give priority to any Name column. Put it after the check column (0) and Id (1) columns.
             var newColumn = new column(binding, columnWidth, columnName);
-            if ((binding === "Name") && (!this.settings.customColumns().customMode())){
+            if ((binding === "Name") && (!this.settings.customColumns().customMode())) {
                 this.columns.splice(2, 0, newColumn);
+            } 
+            else if ((binding === "Conflicts") && (!this.settings.customColumns().customMode())) {
+                this.columns.splice(3, 0, newColumn);
             } else {
                 this.columns.push(newColumn);
             }
@@ -393,7 +396,10 @@ class ctor {
                 });
                 if ((binding === "Name") && (!this.settings.customColumns().customMode())) {
                     this.settings.customColumns().columns.splice(0, 0, newCustomColumn);
-                } else {
+                }
+                else if ((binding === "Conflicts") && (!this.settings.customColumns().customMode())) {
+                    this.settings.customColumns().columns.splice(1, 0, newCustomColumn);
+                } else{
                     this.settings.customColumns().columns.push(newCustomColumn);
                 }
             }
