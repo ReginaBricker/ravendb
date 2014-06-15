@@ -8,6 +8,7 @@ using Raven.Abstractions.Data;
 using Raven.Abstractions.Logging;
 using Raven.Abstractions.Util.Encryptors;
 using Raven.Database;
+using Raven.Database.Server.RavenFS.Extensions;
 using Raven.Database.Storage;
 using Raven.Imports.Newtonsoft.Json.Linq;
 using Raven.Json.Linq;
@@ -108,7 +109,7 @@ namespace Raven.Bundles.Replication.Responders
 			CreatedConflict createdConflict;
 
 			var newDocumentConflictId = SaveConflictedItem(id, metadata, incoming, existingEtag);
-
+            
 			if (existingDocumentIsInConflict) // the existing document is in conflict
 			{
 				log.Debug("Conflicted item {0} has a new version from {1}, adding to conflicted documents", id, Src);
@@ -122,9 +123,12 @@ namespace Raven.Bundles.Replication.Responders
 				// move the existing doc to a conflict and create a conflict document
 				var existingDocumentConflictId = id + "/conflicts/" + HashReplicationIdentifier(existingEtag);
 
-				createdConflict = CreateConflict(id, newDocumentConflictId, existingDocumentConflictId, existingItem,
-					existingMetadata);
-			}
+             //   createdConflict = CreateConflict(id, newDocumentConflictId, existingDocumentConflictId, existingItem,
+             //       existingMetadata);
+			    var incomingObj = incoming as RavenJObject;
+                createdConflict = CreateConflict(id, newDocumentConflictId, existingDocumentConflictId, existingItem,
+        existingMetadata, incomingObj);
+            }
 
 			Database.TransactionalStorage.ExecuteImmediatelyOrRegisterForSynchronization(() =>
 				Database.Notifications.RaiseNotifications(new ReplicationConflictNotification()
@@ -223,8 +227,10 @@ namespace Raven.Bundles.Replication.Responders
 
 				// we have a new conflict  move the existing doc to a conflict and create a conflict document
 				var existingDocumentConflictId = id + "/conflicts/" + HashReplicationIdentifier(existingEtag);
-				createdConflict = CreateConflict(id, newConflictId, existingDocumentConflictId, existingItem, existingMetadata);
-			}
+               // createdConflict = CreateConflict(id, newConflictId, existingDocumentConflictId, existingItem, existingMetadata);
+			    var incomingObject = incoming as RavenJObject;
+                createdConflict = CreateConflict(id, newConflictId, existingDocumentConflictId, existingItem, existingMetadata,incomingObject);
+            }
 
 			Database.TransactionalStorage.ExecuteImmediatelyOrRegisterForSynchronization(() =>
 				Database.Notifications.RaiseNotifications(new ReplicationConflictNotification()
@@ -244,8 +250,10 @@ namespace Raven.Bundles.Replication.Responders
 
 		protected abstract void AddWithoutConflict(string id, Etag etag, RavenJObject metadata, TExternal incoming);
 
-		protected abstract CreatedConflict CreateConflict(string id, string newDocumentConflictId,
-			string existingDocumentConflictId, TInternal existingItem, RavenJObject existingMetadata);
+        protected abstract CreatedConflict CreateConflict(string id, string newDocumentConflictId,
+            string existingDocumentConflictId, TInternal existingItem, TExternal existingMetadata);
+        protected abstract CreatedConflict CreateConflict(string id, string newDocumentConflictId,
+            string existingDocumentConflictId, TInternal existingItem, RavenJObject existingMetadata, RavenJObject incomingObject ); //TExternal
 
 		protected abstract CreatedConflict AppendToCurrentItemConflicts(string id, string newConflictId,
 			RavenJObject existingMetadata, TInternal existingItem);

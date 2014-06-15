@@ -35,34 +35,45 @@ namespace Raven.Bundles.Replication.Responders
 			Actions.Lists.Remove(Constants.RavenReplicationAttachmentsTombstones, id);
 		}
 
-		protected override CreatedConflict CreateConflict(string id, string newDocumentConflictId, string existingDocumentConflictId, Attachment existingItem, RavenJObject existingMetadata)
-		{
-			existingItem.Metadata.Add(Constants.RavenReplicationConflict, RavenJToken.FromObject(true));
-			Actions.Attachments.AddAttachment(existingDocumentConflictId, null, existingItem.Data(), existingItem.Metadata);
-			Actions.Lists.Remove(Constants.RavenReplicationDocsTombstones, id);
-			var conflictsArray = new RavenJArray(existingDocumentConflictId, newDocumentConflictId);
-			var conflictAttachment = new RavenJObject
-			{
-				{"Conflicts", conflictsArray}
-			};
-			var memoryStream = new MemoryStream();
-			conflictAttachment.WriteTo(memoryStream);
-			memoryStream.Position = 0;
-			var etag = existingMetadata.Value<bool>(Constants.RavenDeleteMarker) ? null : existingItem.Etag;
-			var newEtag = Actions.Attachments.AddAttachment(id, etag,
-			                                  memoryStream,
-			                                  new RavenJObject
-			                                  {
-				                                  {Constants.RavenReplicationConflict, true},
-				                                  {"@Http-Status-Code", 409},
-				                                  {"@Http-Status-Description", "Conflict"}
-			                                  });
-			return new CreatedConflict()
-			{
-				Etag = newEtag,
-				ConflictedIds = conflictsArray.Select(x => x.Value<string>()).ToArray()
-			};
-		}
+	    protected override CreatedConflict CreateConflict(string id, string newDocumentConflictId, string existingDocumentConflictId, Attachment existingItem, byte[] existingMetadata)
+	    {
+            throw new NotImplementedException();
+           
+	    }
+
+	    protected override CreatedConflict CreateConflict(string id, string newDocumentConflictId, string existingDocumentConflictId, Attachment existingItem, RavenJObject existingMetadata, RavenJObject incomingObject)
+	    {
+	        throw new NotImplementedException();
+	    }
+
+        //protected override CreatedConflict CreateConflict(string id, string newDocumentConflictId, string existingDocumentConflictId, Attachment existingItem, RavenJObject existingMetadata)
+        //{
+        //    existingItem.Metadata.Add(Constants.RavenReplicationConflict, RavenJToken.FromObject(true));
+        //    Actions.Attachments.AddAttachment(existingDocumentConflictId, null, existingItem.Data(), existingItem.Metadata);
+        //    Actions.Lists.Remove(Constants.RavenReplicationDocsTombstones, id);
+        //    var conflictsArray = new RavenJArray(existingDocumentConflictId, newDocumentConflictId);
+        //    var conflictAttachment = new RavenJObject
+        //    {
+        //        {"Conflicts", conflictsArray}
+        //    };
+        //    var memoryStream = new MemoryStream();
+        //    conflictAttachment.WriteTo(memoryStream);
+        //    memoryStream.Position = 0;
+        //    var etag = existingMetadata.Value<bool>(Constants.RavenDeleteMarker) ? null : existingItem.Etag;
+        //    var newEtag = Actions.Attachments.AddAttachment(id, etag,
+        //                                      memoryStream,
+        //                                      new RavenJObject
+        //                                      {
+        //                                          {Constants.RavenReplicationConflict, true},
+        //                                          {"@Http-Status-Code", 409},
+        //                                          {"@Http-Status-Description", "Conflict"}
+        //                                      });
+        //    return new CreatedConflict()
+        //    {
+        //        Etag = newEtag,
+        //        ConflictedIds = conflictsArray.Select(x => x.Value<string>()).ToArray()
+        //    };
+        //}
 
 		protected override CreatedConflict AppendToCurrentItemConflicts(string id, string newConflictId, RavenJObject existingMetadata, Attachment existingItem)
 		{
