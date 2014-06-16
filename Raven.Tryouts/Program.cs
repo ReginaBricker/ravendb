@@ -12,8 +12,8 @@ using Raven.Tests.Issues;
 using System;
 using System.Linq;
 using Raven.Tests.Spatial;
-using Raven.Tryouts;
-using SpatialIndexSamples;
+//using Raven.Tryouts;
+//using SpatialIndexSamples;
 using Xunit;
 
 namespace Raven.Abstractions.Tests
@@ -64,7 +64,8 @@ namespace Raven.Abstractions.Tests
                               doc.Shape
                           };
 
-            Spatial(x => x.Shape, x => x.Geography.QuadPrefixTreeIndex(5));
+          //  Spatial(x => x.Shape, x => x.Geography.GeohashPrefixTreeIndex(24));
+            Spatial(x => x.Shape, options => options.Geography.GeohashPrefixTreeIndex(1));
         }
     }
 
@@ -140,6 +141,8 @@ namespace Raven.Abstractions.Tests
             var rectangle2 = "6 6 10 10";
             var rectangle3 = "0 0 6 6";
             var rectangle4 = "1 2 3 3";
+            var bigPolygon = "POLYGON ((33.946 31.446, 34.241 30.874, 36.383 30.922, 36.023 31.552, 33.946 31.446))";
+            var smallPolygon = "POLYGON ((33.940 31.457, 33.956 31.457, 33.955 31.4356, 33.940 31.436, 33.940 31.457))";
 //
             using (var store = new EmbeddableDocumentStore
             {
@@ -155,7 +158,8 @@ namespace Raven.Abstractions.Tests
 //
                 using (var session = store.OpenSession())
                 {
-                    session.Store(new SpatialDoc {Shape = polygon});
+                   // session.Store(new SpatialDoc { Shape = bigPolygon });
+                    session.Store(new SpatialDoc { Shape = smallPolygon });
                     session.SaveChanges();
                 }
 
@@ -185,11 +189,31 @@ namespace Raven.Abstractions.Tests
 //                    .Customize(x => x.WaitForNonStaleResults())
 //                    .Spatial(x => x.Shape, x => x.Intersects(simpleRectangle1)).ToList();
 
-                    //except
-                    var result21 = session.Query<SpatialDoc, QuadTreeIndex>()
-                        .Customize(x => x.WaitForNonStaleResults())
-                        .Spatial(x => x.Shape, x => x.Contains(simpleRectangle1)).ToList();
+                    //contains not supported
+                    //var resultCont = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+                        //.Customize(x => x.WaitForNonStaleResults())
+                        //.Spatial(x => x.Shape, x => x.Contains(smallPolygon)).ToList();
 
+                    //var resultInters = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+                    //    .Customize(x => x.WaitForNonStaleResults())
+                    //    .Spatial(x => x.Shape, x => x.Intersects(smallPolygon)).ToList();
+                    var resultInters = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+                        .Customize(x => x.WaitForNonStaleResults())
+                        .Spatial(x => x.Shape, x => x.Intersects(bigPolygon)).ToList();
+                    //var resultWithin = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+                    //    .Customize(x => x.WaitForNonStaleResults())
+                    //    .Spatial(x => x.Shape, x => x.Within(smallPolygon)).ToList();
+                    var resultWithin = session.Query<SpatialDoc, QuadTreeIndexGeographic>()
+                        .Customize(x => x.WaitForNonStaleResults())
+                        .Spatial(x => x.Shape, x => x.Within(bigPolygon)).ToList();
+
+                    var resultWithinBBox = session.Query<SpatialDoc, BBoxIndex>()
+                          .Customize(x => x.WaitForNonStaleResults())
+                          .Spatial(x => x.Shape, x => x.Within(smallPolygon)).ToList();
+                    var resultIntersBbox = session.Query<SpatialDoc, BBoxIndex>()
+                          .Customize(x => x.WaitForNonStaleResults())
+                          .Spatial(x => x.Shape, x => x.Intersects(smallPolygon)).ToList();
+ 
                 }
 
 //                using (var session = store.OpenSession())
