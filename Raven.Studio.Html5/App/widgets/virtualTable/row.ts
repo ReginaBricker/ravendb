@@ -103,14 +103,14 @@ class row {
     getCellTemplate(cellName: string): string {
         var cellVal: cell = this.cellMap[cellName];
         if (cellVal) {
-            if (cellVal.resetFlag === true) {
+           // if (cellVal.resetFlag === true) {
                 cellVal.templateName = this.getCellTemplateName(cellName, this.cellMap[cellName].data())
-                cellVal.resetFlag = false;
+               // cellVal.resetFlag = false;
                 return cellVal.templateName;
-            }
-            else {
-                return cellVal.templateName;
-            }
+            //}
+            //else {
+            //    return cellVal.templateName;
+            //}
         }
 
         // Bug fix: http://issues.hibernatingrhinos.com/issue/RavenDB-2002

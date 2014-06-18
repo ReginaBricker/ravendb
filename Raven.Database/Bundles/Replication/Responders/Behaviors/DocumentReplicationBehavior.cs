@@ -72,33 +72,33 @@ namespace Raven.Bundles.Replication.Responders
             var etag = existingMetadata.Value<bool>(Constants.RavenDeleteMarker) ? Etag.Empty : existingItem.Etag;
             Actions.Lists.Remove(Constants.RavenReplicationDocsTombstones, id);
             var conflictsArray = new RavenJArray(existingDocumentConflictId, newDocumentConflictId);
-            //var addResult = Actions.Documents.AddDocument(id, etag,
-            //                                              new RavenJObject
+            var addResult = Actions.Documents.AddDocument(id, etag,
+                                                          new RavenJObject
+                                                          {
+                                                              {"Conflicts", conflictsArray}
+                                                          },
+                                                          new RavenJObject
+                                                          {
+                                                              {Constants.RavenReplicationConflict, true},
+                                                              {"@Http-Status-Code", 409},
+                                                              {"@Http-Status-Description", "Conflict"}
+			                                              });
+            //var addResultNew = Actions.Documents.AddDocument(id, etag,
+            //                                                        new RavenJObject
             //                                              {
-            //                                                  {"Conflicts", conflictsArray}
+            //                                                  {"Conflicts", conflictResStr}
             //                                              },
-            //                                              new RavenJObject
+            //                                                        new RavenJObject
             //                                              {
             //                                                  {Constants.RavenReplicationConflict, true},
             //                                                  {"@Http-Status-Code", 409},
             //                                                  {"@Http-Status-Description", "Conflict"}
-			 //                                             });
-            var addResultNew = Actions.Documents.AddDocument(id, etag,
-                                                                    new RavenJObject
-			                                              {
-				                                              {"Conflicts", conflictResStr}
-			                                              },
-                                                                    new RavenJObject
-			                                              {
-				                                              {Constants.RavenReplicationConflict, true},
-				                                              {"@Http-Status-Code", 409},
-				                                              {"@Http-Status-Description", "Conflict"}
-			                                              });
+            //                                              });
 
             return new CreatedConflict()
             {
-               // Etag = addResult.Etag,
-                Etag = addResultNew.Etag,
+              Etag = addResult.Etag,
+              //  Etag = addResultNew.Etag,
                 ConflictedIds = conflictsArray.Select(x => x.Value<string>()).ToArray()
             };
         }

@@ -1,6 +1,6 @@
 class cell {
     data = ko.observable<any>();
-    resetFlag = false;
+   // resetFlag = false;
 
     static defaultTemplate = "defaultTemplate";
     static idTemplate = "idTemplate";
@@ -13,8 +13,9 @@ class cell {
     }
 
     reset() {
+        this.templateName = cell.defaultTemplate;
         this.data('');       
-        this.resetFlag = true; 
+       // this.resetFlag = true; 
     }
 }
 

@@ -311,6 +311,8 @@ class ctor {
         // Keep allocations to a minimum.
 
         var columnsNeeded = {};
+        var isConflictsColumnExists: boolean = false;
+        var isNameColumnExists: boolean = false;
         
         if (this.settings.customColumns().hasOverrides()) {
             var colParams = this.settings.customColumns().columns();
@@ -325,9 +327,20 @@ class ctor {
                 for (var j = 0; j < rowProperties.length; j++) {
                     var property = rowProperties[j];
                     columnsNeeded[property] = null;
+                    //if (!!this.columns.first(x=> x.binding == "Name")) {
+                    if (property === 'Name' && !this.columns.first(x=> x.binding == "Name")) {
+                        isNameColumnExists = true;
+                    }
+                    if (property === 'Conflicts' && !this.columns.first(x=> x.binding == "Conflicts")) {
+                        isConflictsColumnExists = true;
+                    }
                 }
             }
         }
+        
+        
+
+        
 
         for (var i = 0; i < this.columns().length; i++) {
             var colName = this.columns()[i].binding;
@@ -352,20 +365,60 @@ class ctor {
         for (var i = 2; i < this.columns().length; i++) {
             columnsCurrentTotalWidth += this.columns()[i].width();
         }
+        /*
+         *    var isConflictsColumnExists: boolean = false;
+                var isNameColumnExists: boolean = false;
+         */
 
-        var availiableWidth = this.grid.width() - 200 * idColumnExists - columnsCurrentTotalWidth;
+
+        var availiableWidth = this.grid.width() - 200 * idColumnExists - 200 * (isNameColumnExists ? 1 : 0) - 200 * (isConflictsColumnExists ? 1 : 0)  - columnsCurrentTotalWidth;
         var freeWidth = availiableWidth;
         var fontSize = parseInt(this.grid.css("font-size"));
         var columnCount = 0;
-        for (var binding in columnsNeeded) {
-            var curColWidth = (binding.length + 2) * fontSize;
-            if (freeWidth - curColWidth < 0) {
+        for (var neededColumn in columnsNeeded) {
+            var neededColumnWidth = (neededColumn.length + 2) * fontSize;
+            if (freeWidth - neededColumnWidth < 0) {
                 break;
             }
-            freeWidth -= curColWidth;
+            freeWidth -= neededColumnWidth;
             columnCount++;
         }
         var freeWidthPerColumn = (freeWidth / (columnCount + 1));
+
+        if (isNameColumnExists) {
+            var nameColumnName = this.getColumnName(binding);
+            var nameColumn = new column("Name", 200, nameColumnName);
+            this.columns.splice(2, 0, nameColumn);
+
+            if (!this.settings.customColumns().customMode() && this.settings.customColumns().findConfigFor("Name")) {
+                var curNameColumnTemplate: string = firstRow.getCellTemplate("Name");
+                var newNameCustomColumn = new customColumnParams({
+                    Binding: binding,
+                    Header: binding,
+                    Template: curNameColumnTemplate,
+                    DefaultWidth: availiableWidth > 0 ? Math.floor(columnWidth) : 0
+                });
+                this.settings.customColumns().columns.splice(0, 0, newNameCustomColumn);
+            }
+            
+        }
+
+        if (isConflictsColumnExists) {
+            var conflictsColumnName = this.getColumnName(binding);
+            var conflictsColumn = new column("Conflicts", 200, conflictsColumnName);
+            this.columns.splice(2 + (isNameColumnExists ? 1 : 0), 0, conflictsColumn);
+
+            if (!this.settings.customColumns().customMode() && this.settings.customColumns().findConfigFor("Conflicts")) {
+                var curConflictsColumnTemplate: string = firstRow.getCellTemplate("Conflicts");
+                var newConflictsCustomColumn = new customColumnParams({
+                    Binding: binding,
+                    Header: binding,
+                    Template: curConflictsColumnTemplate,
+                    DefaultWidth: availiableWidth > 0 ? Math.floor(columnWidth) : 0
+                });
+                this.settings.customColumns().columns.splice(0, 0, newConflictsCustomColumn);
+            }
+        }
 
         var firstRow = this.recycleRows().length > 0 ? this.recycleRows()[0] : null;
         for (var binding in columnsNeeded) {
@@ -380,11 +433,13 @@ class ctor {
             // Give priority to any Name column. Put it after the check column (0) and Id (1) columns.
             var newColumn = new column(binding, columnWidth, columnName);
             if ((binding === "Name") && (!this.settings.customColumns().customMode())) {
+                continue;
                 this.columns.splice(2, 0, newColumn);
             } 
             else if ((binding === "Conflicts") && (!this.settings.customColumns().customMode())) {
+                continue;
                 this.columns.splice(3, 0, newColumn);
-            } else {
+            } else if (binding !== "Conflicts" && binding !== "Name" ){
                 this.columns.push(newColumn);
             }
 
@@ -398,9 +453,11 @@ class ctor {
                     DefaultWidth: availiableWidth > 0 ? Math.floor(columnWidth) : 0
                 });
                 if ((binding === "Name") && (!this.settings.customColumns().customMode())) {
+                    continue;
                     this.settings.customColumns().columns.splice(0, 0, newCustomColumn);
                 }
                 else if ((binding === "Conflicts") && (!this.settings.customColumns().customMode())) {
+                    continue;
                     this.settings.customColumns().columns.splice(1, 0, newCustomColumn);
                 } else{
                     this.settings.customColumns().columns.push(newCustomColumn);
